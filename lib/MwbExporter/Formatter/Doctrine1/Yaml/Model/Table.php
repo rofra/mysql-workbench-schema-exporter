@@ -25,11 +25,10 @@
 
 namespace MwbExporter\Formatter\Doctrine1\Yaml\Model;
 
-use MwbExporter\Core\Registry;
-use MwbExporter\Core\Model\Table as Base;
-
-class Table extends Base
+class Table extends \MwbExporter\Core\Model\Table
 {
+    protected $relationCollisions   = array();  // collection of relation
+
     public function __construct($data, $parent)
     {
         parent::__construct($data, $parent);
@@ -83,7 +82,7 @@ class Table extends Base
         }
 
         // check if schema name has to be included
-        $config = Registry::get('config');
+        $config = \MwbExporter\Core\Registry::get('config');
         if(isset($config['extendTableNameWithSchemaName']) && $config['extendTableNameWithSchemaName']){
             // $schemaname = table->tables->schema->getName()
             $schemaName = $this->getParent()->getParent()->getName();
@@ -102,10 +101,13 @@ class Table extends Base
         if(count($this->relations) > 0 or $this->hasExternalRelations()){
             $return[] = '  relations:';
 
+            // Manage relation Names for unicity constraint
+            $this->presetRelationNames();
+
             foreach($this->relations as $relation){
                 $return[] = $relation->display();
             }
-            
+
             if ($this->hasExternalRelations()) {
                 $return[] = '    ' . $this->getExternalRelations();
             }
@@ -137,5 +139,47 @@ class Table extends Base
         } else {
             return parent::getModelName();
         }
+    }
+
+    public function presetRelationNames()
+    {
+    	$hash = array();
+
+    	$relationNameList = array();
+    	foreach($this->relations as $relation){
+    		$relation_name = $relation->generateDefaultRelationName();
+
+    		// Create the hash if not exists
+    		if (isset($hash[$relation_name])) {
+    			$hash[$relation_name] = $hash[$relation_name] + 1;
+    		} else {
+    			$hash[$relation_name] = 1;
+    		}
+
+    		// If there is already an entry in the hash, take the increment number
+    		if ($hash[$relation_name] != 1) {
+    			$relation_name = $relation_name . $hash[$relation_name];
+    		}
+
+    		$relation->setRelationName($relation_name);
+    	}
+    }
+
+    /**
+    *
+    * @param \MwbExporter\Core\Model\ForeignKey $foreignKey
+    */
+    public function injectRelation( \MwbExporter\Core\Model\ForeignKey $foreignKey)
+    {
+        $collisionKey = $this->getRawTableName() . '_' . $foreignKey->getAttribute('name');
+
+        // Create the hash if not exists
+        if (isset($this->relationCollisions[$collisionKey])) {
+            return ;
+        }
+
+        $this->relations[] = $foreignKey;
+
+        $this->relationCollisions[$collisionKey] = 1;
     }
 }

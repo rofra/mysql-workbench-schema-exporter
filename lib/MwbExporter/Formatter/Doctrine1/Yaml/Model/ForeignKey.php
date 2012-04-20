@@ -25,12 +25,21 @@
 
 namespace MwbExporter\Formatter\Doctrine1\Yaml\Model;
 
-use MwbExporter\Core\Registry;
-use MwbExporter\Core\Model\ForeignKey as Base;
-use MwbExporter\Helper\Pluralizer;
-
-class ForeignKey extends Base
+class ForeignKey extends \MwbExporter\Core\Model\ForeignKey
 {
+	public $relationName = '';
+
+    public function getRelationName()
+    {
+        return $this->relationName;
+    }
+
+    public function setRelationName($value)
+    {
+        return $this->relationName = $value;
+    }
+
+
     public function __construct($data, $parent)
     {
         parent::__construct($data, $parent);
@@ -44,18 +53,26 @@ class ForeignKey extends Base
         return $this->parseComment('foreignAlias', $this->getComment());
     }
 
+    public function generateDefaultRelationName()
+    {
+    	$relation_name = (strpos($this->config['name'],'d:') === 0)?substr($this->config['name'],2):$this->referencedTable->getModelName();
+    	return $relation_name;
+    }
+
     public function display()
     {
         $return = array();
-        $relation_name = (strpos($this->config['name'],'d:') === 0)?substr($this->config['name'],2):$this->referencedTable->getModelName();
+
+        $relation_name = $this->getRelationName();
+
         $return[] = '    ' . $relation_name . ':';
         $return[] = '      class: ' . $this->referencedTable->getModelName();
 
         $ownerColumn = $this->data->xpath("value[@key='columns']");
-        $return[] = '      local: ' . Registry::get((string) $ownerColumn[0]->link)->getColumnName();
+        $return[] = '      local: ' . \MwbExporter\Core\Registry::get((string) $ownerColumn[0]->link)->getColumnName();
 
         $referencedColumn = $this->data->xpath("value[@key='referencedColumns']");
-        $return[] = '      foreign: ' . Registry::get((string) $referencedColumn[0]->link)->getColumnName();
+        $return[] = '      foreign: ' . \MwbExporter\Core\Registry::get((string) $referencedColumn[0]->link)->getColumnName();
 
         $foreignAlias = trim($this->getForeignAlias());
 
@@ -63,7 +80,7 @@ class ForeignKey extends Base
             $return[] = '      foreignAlias: ' . $foreignAlias;
         } else {
             if((int)$this->config['many'] === 1){
-                $return[] = '      foreignAlias: ' . Pluralizer::pluralize($this->owningTable->getModelName());
+                $return[] = '      foreignAlias: ' . \MwbExporter\Helper\Pluralizer::pluralize($this->owningTable->getModelName());
             } else {
                 $return[] = '      foreignAlias: ' . $this->owningTable->getModelName();
             }
