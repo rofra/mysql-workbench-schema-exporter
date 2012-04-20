@@ -28,7 +28,7 @@
 
 function usage()
 {
-  $self = $_SERVER['argv'][0];
+  $self = basename($_SERVER['argv'][0]);
   echo <<<EOF
 Usage:
 $self [options] FILENAME [DEST]
@@ -39,7 +39,9 @@ Options:
                 - doctrine2-annotation     Doctrine 2.0 annotation classes
                 - doctrine2-yml            Doctrine 2.0 yml schema
                 - zend-dbtable             Zend DbTable
---zip           Export as zip archive
+--config=file   Read file for export parameters, in JSON format.
+--saveconfig    Save export parameters to file.
+--zip           Export as zip archive.
 
 EOF;
   die(0);
@@ -143,6 +145,18 @@ function askValue($prompt, &$value, $show = true)
   }
 }
 
+function mergeFormatter(&$setup, $configs)
+{
+  $keys = array_keys($setup);
+  for ($i = 0; $i < count($keys); $i++)
+  {
+    if (isset($configs[$keys[$i]]))
+    {
+      $setup[$keys[$i]] = $configs[$keys[$i]];
+    }
+  }
+}
+
 function setupFormatter(&$setup)
 {
   $keys = array_keys($setup);
@@ -158,6 +172,43 @@ function setupFormatter(&$setup)
 function main($filename, $dir, $params, $options)
 {
   $setup = array();
+  $configs = array();
+  // check config file
+  if ($config = $params['config'])
+  {
+    if (!is_readable($config))
+    {
+      echo "Can't read config file $config, using interactive mode.\n\n";
+    }
+    else
+    {
+      if (null !== ($data = json_decode(file_get_contents($config), true)))
+      {
+        echo "Using config file $config for parameters.\n\n";
+        if (isset($data['export']))
+        {
+          $params['export'] = $data['export'];
+        }
+        if (isset($data['zip']))
+        {
+          $options['zip'] = (bool) $data['zip'];
+        }
+        if (isset($data['dir']))
+        {
+          $dir = $data['dir'];
+        }
+        if (isset($data['params']))
+        {
+          $configs = $data['params'];
+        }
+      }
+      else
+      {
+        echo "Ignoring invalid config file $config.\n\n";
+      }
+    }
+  }
+  // main export checking
   switch (strtolower($export = $params['export']))
   {
     case 'doctrine1':
@@ -202,6 +253,14 @@ function main($filename, $dir, $params, $options)
 
     case 'zend-dbtable':
       $title = 'Zend DbTable';
+      $setup = array(
+          'tablePrefix'               => 'Application_Model_DbTable_',
+          'parentTable'               => 'Zend_Db_Table_Abstract',
+          'generateDRI'               => false,
+          'generateGetterSetter'      => false,
+          'indentation'               => 4,
+          'filename'                  => 'DbTable/%schema%/%entity%.%extension%',
+      );
       $formatter_class = '\MwbExporter\Formatter\Zend\DbTable\Loader';
       $extension = 'php';
       break;
@@ -216,21 +275,33 @@ function main($filename, $dir, $params, $options)
   $setup = array_merge(array('skipPluralNameChecking' => false), $setup);
   if (count($setup))
   {
-    $ask = false;
-    askValue('Would you like to change the setup configuration before exporting', $ask);
-    if ($ask)
+    if (count($configs))
     {
-      setupFormatter($setup);
+      mergeFormatter($setup, $configs);
     }
+    else
+    {
+      $ask = false;
+      askValue('Would you like to change the setup configuration before exporting', $ask);
+      if ($ask)
+      {
+        setupFormatter($setup);
+      }
+    }
+  }
+  // save export parameters
+  if ($options['saveconfig'])
+  {
+    file_put_contents('export.json', json_encode(array('export' => $export, 'zip' => $options['zip'], 'dir' => $dir, 'params' => $setup)));
   }
 
   // lets stop the time
   $start = microtime(true);
 
   // enable autoloading of classes
-  require_once('../lib/MwbExporter/Core/SplClassLoader.php');
+  require_once(__DIR__ . '/../lib/MwbExporter/Core/SplClassLoader.php');
   $classLoader = new SplClassLoader();
-  $classLoader->setIncludePath('../lib');
+  $classLoader->setIncludePath(__DIR__ . '/../lib');
   $classLoader->register();
 
   // create a formatter
@@ -270,9 +341,11 @@ $arguments = $_SERVER['argv'];
 $options = array(
   'help'          => false,
   'zip'           => false,
+  'saveconfig'    => false,
 );
 $params = array(
   'export'        => 'doctrine2-annotation',
+  'config'        => null,
 );
 
 array_shift($arguments);
@@ -282,6 +355,6 @@ if ($options['help'] || count($values) < 1)
   usage();
 }
 
-main($values[0], count($values) > 1 ? $values[1] : __DIR__, $params, $options);
+main($values[0], count($values) > 1 ? $values[1] : getcwd(), $params, $options);
 
 // ----------------------------------------- EOF ----------------------------------------------------- //
