@@ -23,27 +23,30 @@
  *  THE SOFTWARE.
  */
 
-namespace MwbExporter\Core\Model;
+namespace MwbExporter\Core;
 
-use MwbExporter\Core\Registry;
-
-abstract class ForeignKeys extends Base
+class RelationNameUniquizer
 {
-    protected $foreignKeys = array();
+    protected $hash = array();
 
-    public function __construct($data, $parent)
+    /**
+     *
+     * Propose a relation Name
+     */
+    public function proposeRelationName($relationName)
     {
-        parent::__construct($data, $parent);
-
-        foreach($data->value as $key => $node){
-            $this->foreignKeys[] = Registry::get('formatter')->createForeignKey($node, $this);
+        // Create the hash if not exists
+        if (isset($this->hash[$relationName])) {
+            $this->hash[$relationName] = $this->hash[$relationName] + 1;
+        } else {
+            $this->hash[$relationName] = 1;
         }
 
-        Registry::set($this->id, $this);
-    }
+        // If there is already an entry in the hash, take the increment number
+        if ($this->hash[$relationName] != 1) {
+            $relationName = $relationName . $this->hash[$relationName];
+        }
 
-    public function getForeignKeys()
-    {
-        return $this->foreignKeys;
+        return $relationName;
     }
 }

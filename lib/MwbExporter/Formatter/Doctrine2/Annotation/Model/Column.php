@@ -94,20 +94,23 @@ class Column extends Base
             $return[] = '';
         }
 
+        // Get the relation name relationunicitizer
+        $relationUniquizer = Registry::get('relationunicitizer');
+
         // one to many references
         if(is_array($this->foreigns)){
             foreach($this->foreigns as $foreign){
                 //check for OneToOne or OneToMany relationship
                 if(intval($foreign->getAttribute('many')) == 1){ // is OneToMany
                     $return[] = $this->indentation() . '/**';
-                    $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'OneToMany(targetEntity="' . $foreign->getOwningTable()->getModelName() . '", mappedBy="' . lcfirst($foreign->getReferencedTable()->getModelName()) . '")';
+                    $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'OneToMany(targetEntity="' . $relationUniquizer->proposeRelationName($foreign->getOwningTable()->getModelName()) . '", mappedBy="' . $relationUniquizer->proposeRelationName(lcfirst($foreign->getReferencedTable()->getModelName())) . '")';
                     $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'JoinColumn(name="' . $foreign->foreign->getColumnName() . '", referencedColumnName="' . $foreign->local->getColumnName() . '")';
                     $return[] = $this->indentation() . ' */';
                     $return[] = $this->indentation() . 'private $' . lcfirst(Pluralizer::pluralize($foreign->getOwningTable()->getModelName())) . ';';
                     $return[] = '';
                 } else { // is OneToOne
                     $return[] = $this->indentation() . '/**';
-                    $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'OneToOne(targetEntity="' . $foreign->getOwningTable()->getModelName() . '", mappedBy="' . lcfirst($foreign->getReferencedTable()->getModelName()) . '")';
+                    $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'OneToOne(targetEntity="' . $relationUniquizer->proposeRelationName($foreign->getOwningTable()->getModelName()) . '", mappedBy="' . $relationUniquizer->proposeRelationName(lcfirst($foreign->getReferencedTable()->getModelName())) . '")';
                     $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'JoinColumn(name="' . $foreign->foreign->getColumnName() . '", referencedColumnName="' . $foreign->local->getColumnName() . '")';
                     $return[] = $this->indentation() . ' */';
                     $return[] = $this->indentation() . 'private $' . lcfirst($foreign->getOwningTable()->getModelName()) . ';';
@@ -121,14 +124,14 @@ class Column extends Base
             //check for OneToOne or ManyToOne relationship
             if(intval($this->local->getAttribute('many')) == 1){ // is ManyToOne
                 $return[] = $this->indentation() . '/**';
-                $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'ManyToOne(targetEntity="' . $this->local->getReferencedTable()->getModelName() . '", inversedBy="' . lcfirst(Pluralizer::pluralize($this->local->getOwningTable()->getModelName())) . '")';
+                $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'ManyToOne(targetEntity="' . $relationUniquizer->proposeRelationName($this->local->getReferencedTable()->getModelName()) . '", inversedBy="' . $relationUniquizer->proposeRelationName(lcfirst(Pluralizer::pluralize($this->local->getOwningTable()->getModelName()))) . '")';
                 $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'JoinColumn(name="' . $this->local->foreign->getColumnName() . '", referencedColumnName="' . $this->local->local->getColumnName() . '")';
                 $return[] = $this->indentation() . ' */';
                 $return[] = $this->indentation() . 'private $' . lcfirst($this->local->getReferencedTable()->getModelName()) . ';';
                 $return[] = '';
             } else { // is OneToOne
                 $return[] = $this->indentation() . '/**';
-                $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'OneToOne(targetEntity="' . $this->local->getReferencedTable()->getModelName() . '", inversedBy="' . lcfirst($this->local->getOwningTable()->getModelName()) . '")';
+                $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'OneToOne(targetEntity="' . $relationUniquizer->proposeRelationName($this->local->getReferencedTable()->getModelName()) . '", inversedBy="' . $relationUniquizer->proposeRelationName(lcfirst($this->local->getOwningTable()->getModelName())) . '")';
                 $return[] = $this->indentation() . ' * ' . $this->ormPrefix . 'JoinColumn(name="' . $this->local->foreign->getColumnName() . '", referencedColumnName="' . $this->local->local->getColumnName() . '")';
                 $return[] = $this->indentation() . ' */';
                 $return[] = $this->indentation() . 'private $' . lcfirst($this->local->getReferencedTable()->getModelName()) . ';';

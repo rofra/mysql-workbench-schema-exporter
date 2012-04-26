@@ -54,7 +54,7 @@ class Table extends Base
             (isset($config['entityNamespace']) && $config['entityNamespace']) ? $config['entityNamespace'] : 'Entity',
             $this->getModelName()
         );
-        
+
         /**
          * formatting repository's Namespace
          */

@@ -42,9 +42,18 @@ class ForeignKey extends Base
      *
      * @return string
      */
+    public function generateDefaultRelationName()
+    {
+        $relation_name = $this->referencedTable->getModelName();
+        return $relation_name;
+    }
+
     public function display()
     {
         $return = array();
+
+        // Get the relation name relationunicitizer
+        $relationUniquizer = Registry::get('relationunicitizer');
 
         /**
          * sometimes the link between to tables is broken
@@ -53,7 +62,7 @@ class ForeignKey extends Base
             return $this->indentation(2) . '# There is another foreign key declaration but it seems broken.';
         }
 
-        $return[] = $this->indentation(2) . $this->referencedTable->getModelName() . ':';
+        $return[] = $this->indentation(2) . $relationUniquizer->proposeRelationName($this->generateDefaultRelationName()) . ':';
         $return[] = $this->indentation(3) . 'class: ' . $this->referencedTable->getModelName();
 
         $ownerColumn = $this->data->xpath("value[@key='columns']");

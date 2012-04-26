@@ -27,8 +27,6 @@ namespace MwbExporter\Formatter\Doctrine1\Yaml\Model;
 
 class Table extends \MwbExporter\Core\Model\Table
 {
-    protected $relationCollisions   = array();  // collection of relation
-
     public function __construct($data, $parent)
     {
         parent::__construct($data, $parent);
@@ -101,9 +99,6 @@ class Table extends \MwbExporter\Core\Model\Table
         if(count($this->relations) > 0 or $this->hasExternalRelations()){
             $return[] = '  relations:';
 
-            // Manage relation Names for unicity constraint
-            $this->presetRelationNames();
-
             foreach($this->relations as $relation){
                 $return[] = $relation->display();
             }
@@ -141,45 +136,4 @@ class Table extends \MwbExporter\Core\Model\Table
         }
     }
 
-    public function presetRelationNames()
-    {
-    	$hash = array();
-
-    	$relationNameList = array();
-    	foreach($this->relations as $relation){
-    		$relation_name = $relation->generateDefaultRelationName();
-
-    		// Create the hash if not exists
-    		if (isset($hash[$relation_name])) {
-    			$hash[$relation_name] = $hash[$relation_name] + 1;
-    		} else {
-    			$hash[$relation_name] = 1;
-    		}
-
-    		// If there is already an entry in the hash, take the increment number
-    		if ($hash[$relation_name] != 1) {
-    			$relation_name = $relation_name . $hash[$relation_name];
-    		}
-
-    		$relation->setRelationName($relation_name);
-    	}
-    }
-
-    /**
-    *
-    * @param \MwbExporter\Core\Model\ForeignKey $foreignKey
-    */
-    public function injectRelation( \MwbExporter\Core\Model\ForeignKey $foreignKey)
-    {
-        $collisionKey = $this->getRawTableName() . '_' . $foreignKey->getAttribute('name');
-
-        // Create the hash if not exists
-        if (isset($this->relationCollisions[$collisionKey])) {
-            return ;
-        }
-
-        $this->relations[] = $foreignKey;
-
-        $this->relationCollisions[$collisionKey] = 1;
-    }
 }

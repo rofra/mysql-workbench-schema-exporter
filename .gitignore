@@ -7,3 +7,6 @@ tests/
 *.zip
 .sh
 data/
+generated/
+.gitignore
+

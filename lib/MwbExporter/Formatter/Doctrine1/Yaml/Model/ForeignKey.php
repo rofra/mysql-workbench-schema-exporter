@@ -27,19 +27,6 @@ namespace MwbExporter\Formatter\Doctrine1\Yaml\Model;
 
 class ForeignKey extends \MwbExporter\Core\Model\ForeignKey
 {
-	public $relationName = '';
-
-    public function getRelationName()
-    {
-        return $this->relationName;
-    }
-
-    public function setRelationName($value)
-    {
-        return $this->relationName = $value;
-    }
-
-
     public function __construct($data, $parent)
     {
         parent::__construct($data, $parent);
@@ -63,9 +50,10 @@ class ForeignKey extends \MwbExporter\Core\Model\ForeignKey
     {
         $return = array();
 
-        $relation_name = $this->getRelationName();
+        // Get the relation name relationunicitizer
+        $relationUniquizer = Registry::get('relationunicitizer');
 
-        $return[] = '    ' . $relation_name . ':';
+        $return[] = '    ' . $relationUniquizer->proposeRelationName($this->generateDefaultRelationName()) . ':';
         $return[] = '      class: ' . $this->referencedTable->getModelName();
 
         $ownerColumn = $this->data->xpath("value[@key='columns']");

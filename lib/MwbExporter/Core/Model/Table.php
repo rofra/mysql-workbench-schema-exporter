@@ -25,6 +25,8 @@
 
 namespace MwbExporter\Core\Model;
 
+use MwbExporter\Core\RelationNameUniquizer;
+
 use MwbExporter\Core\Registry;
 use MwbExporter\Helper\Pluralizer;
 use MwbExporter\Helper\Singularizer;
@@ -38,6 +40,7 @@ abstract class Table extends Base
     protected $foreignKeys = null;     // workbench object
     protected $indexes     = array();  // collection of indexes
     protected $relations   = array();  // collection of relations
+    protected $relationCollisions   = array();  // collection of relation collision
 
 
     /**
@@ -61,6 +64,10 @@ abstract class Table extends Base
         }
 
         Registry::set($this->id, $this);
+
+        // Put in the registry a new object for each table
+        $relationunicitizer = new RelationNameUniquizer();
+        Registry::set('relationunicitizer', $relationunicitizer);
     }
 
     /**
@@ -173,17 +180,21 @@ abstract class Table extends Base
     }
 
     /**
-     *
-     * @param \MwbExporter\Core\Model\ForeignKey $foreignKey
-     */
-    public function injectRelation(ForeignKey $foreignKey)
+    *
+    * @param \MwbExporter\Core\Model\ForeignKey $foreignKey
+    */
+    public function injectRelation( \MwbExporter\Core\Model\ForeignKey $foreignKey)
     {
-        foreach($this->relations as $_relation){
-            if($_relation->getId() === $foreignKey->getId()){
-                return;
-            }
+        $collisionKey = $this->getRawTableName() . '_' . $foreignKey->getAttribute('name');
+
+        // Create the hash if not exists
+        if (isset($this->relationCollisions[$collisionKey])) {
+            return ;
         }
+
         $this->relations[] = $foreignKey;
+
+        $this->relationCollisions[$collisionKey] = 1;
     }
 
     /**
@@ -228,7 +239,7 @@ abstract class Table extends Base
     {
         return $this->getParent()->getParent();
     }
-    
+
     /**
      *
      * @return int
@@ -250,4 +261,35 @@ abstract class Table extends Base
         }
         return false;
     }
+
+
+    /**
+     *
+     * Pre compute the relation Names (before display)
+     */
+    /*
+    public function presetRelationNames($relations)
+    {
+        $hash = array();
+
+        $relationNameList = array();
+        foreach($relations as $relation){
+            $relation_name = $relation->generateDefaultRelationName();
+
+            // Create the hash if not exists
+            if (isset($hash[$relation_name])) {
+                $hash[$relation_name] = $hash[$relation_name] + 1;
+            } else {
+                $hash[$relation_name] = 1;
+            }
+
+            // If there is already an entry in the hash, take the increment number
+            if ($hash[$relation_name] != 1) {
+                $relation_name = $relation_name . $hash[$relation_name];
+            }
+
+            $relation->setRelationName($relation_name);
+        }
+    }
+    */
 }

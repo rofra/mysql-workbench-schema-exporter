@@ -74,6 +74,13 @@ class ForeignKey extends Base
         }
     }
 
+    public function generateDefaultRelationName()
+    {
+        $relation_name = $this->getReferencedTable()->getRawTableName();
+        return $relation_name;
+    }
+
+
     /**
      *
      * @return string
@@ -82,7 +89,10 @@ class ForeignKey extends Base
     {
         $return = array();
 
-        $return[] = $this->indentation(3) .'\''. $this->getReferencedTable()->getRawTableName() .'\' => array(';
+        // Get the relation name relationunicitizer
+        $relationUniquizer = Registry::get('relationunicitizer');
+
+        $return[] = $this->indentation(3) .'\''. $relationUniquizer->proposeRelationName($this->generateDefaultRelationName()) .'\' => array(';
         $return[] = $this->indentation(4) .'\'columns\'       => \''. $this->foreign->getColumnName() .'\',';
         $return[] = $this->indentation(4) .'\'refTableClass\' => \''. $this->getReferencedTable()->getRawTableName() .'\',';
         $return[] = $this->indentation(4) .'\'refColumns\'    => \''. $this->local->getColumnName() .'\',';
